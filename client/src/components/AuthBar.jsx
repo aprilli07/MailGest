@@ -1,13 +1,12 @@
 export default function AuthBar({ me, onLogin, onLogout, onSummarize, loading }) {
   return (
     <div className="flex justify-between items-center mb-6">
-      {/* If user is signed in */}
-      {me ? (
-        <>
-          <span className="text-sm">
-            Signed in as <b>{me}</b>
-          </span>
-          <div className="flex gap-3">
+      <div className="text-white text-lg italic font-bold mr-auto">
+        Because no one likes long emails.
+      </div>
+      <div className="flex justify-end items-center gap-3">
+        {me ? (
+          <>
             <button
               onClick={onSummarize}
               disabled={loading}
@@ -21,17 +20,16 @@ export default function AuthBar({ me, onLogin, onLogout, onSummarize, loading })
             >
               Log Out
             </button>
-          </div>
-        </>
-      ) : (
-        // If user is NOT signed in
-        <button
-          onClick={onLogin}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Sign in with Google
-        </button>
-      )}
+          </>
+        ) : (
+          <button
+            onClick={onLogin}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Sign in with Google
+          </button>
+        )}
+      </div>
     </div>
   );
 }

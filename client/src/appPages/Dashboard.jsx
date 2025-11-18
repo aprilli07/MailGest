@@ -5,6 +5,9 @@ import FilterBar from "../components/FilterBar";
 import EmailList from "../components/EmailList";
 import axios from "axios";
 import AuthBar from "../components/AuthBar";
+import { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
+import { useRef } from "react";
 
 export default function Dashboard() {
   // store logged in user's email 
@@ -21,6 +24,8 @@ export default function Dashboard() {
     count: 10,
     sortBy: "date",
   });
+  // loading/sign in state for user info (used for Toast popup)
+  const [loadingUser, setLoadingUser] = useState(true);
 
   // axios instance to talk to backend
   const api = axios.create({
@@ -32,11 +37,34 @@ export default function Dashboard() {
   const fetchMe = async () => {
     try {
       const { data } = await api.get("/api/me");
-      if (data.ok) setMe(data.user.email); // store user's email 
+      if (data.ok) setMe(data.user); // store user's email 
     } catch (err) {
       console.error("Error fetching user:", err);
+    } finally {
+      setLoadingUser(false);
     }
   };
+
+  const loginToastShown = useRef(false);
+
+useEffect(() => {
+  // don't show Toast popup if still loading user info
+  if (loadingUser) return;            
+  
+  if (!me) {
+    // If user logs out -> show sign-in toast once.
+    if (!loginToastShown.current) {
+      toast("✉️ Sign in to summarize your emails", {
+        duration: 6000,
+      });
+      // logged in -> don't show again until logout
+      loginToastShown.current = true;
+    }
+  } else {
+    // If user logs in -> do nothing
+    // Only reset on logout.
+  }
+}, [me, loadingUser]);
 
   // fetch email summaries from backend
   const fetchSummary = async () => {
@@ -56,11 +84,14 @@ export default function Dashboard() {
       // if successful, store summaries 
       if (data.ok && Array.isArray(data.summaries)) {
         setEmails(data.summaries);
+        toast.success("Emails summarized successfully!");
       } else {
         setEmails([]);
+        toast.error("No emails found to summarize.");
       }
     } catch (err) {
       console.error("❌ Failed to fetch summaries:", err);
+      toast.error("Uh Oh! Failed to summarize emails.");
     } finally {
       setLoading(false);
     }
@@ -78,6 +109,7 @@ export default function Dashboard() {
       setMe(null);
       setEmails([]);
       setFilteredEmails([]);
+      loginToastShown.current = false; // reset toast shown state on logout
     } catch (err) {
       console.error("Error logging out:", err);
     }
@@ -118,7 +150,8 @@ export default function Dashboard() {
 
   return (
     <div className="text-white bg-black min-h-screen p-8">
-      <Header />
+      <Toaster position="top-center" />
+      <Header me={me}/>
       <AuthBar
         me={me}
         onLogin={login}

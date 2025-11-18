@@ -1,20 +1,55 @@
-export default function EmailCard({ sender, subject, body, priority, date }) {
+export default function EmailCard({ email }) {
   const priorityColors = {
-    High: "border-red-700 bg-red-900/20",
-    Medium: "border-green-700 bg-green-900/20",
-    Low: "border-gray-700 bg-gray-800"
+    High: "border-red-700/40 bg-red-900/10",
+    Medium: "border-green-700/40 bg-green-900/10",
+    Low: "border-yellow-700/40 bg-yellow-900/10",
   };
 
+  // Parse sender name and email (gmail format: Name <name@gmail.com> )
+  const parts = email.from.split("<");
+  const senderName = parts[0].trim();
+  const senderEmail = parts[1]?.replace(">", "").trim() || "";
+
   return (
-    <div className={`p-4 rounded-lg border ${priorityColors[priority]} text-left`}>
-      <div className="flex justify-between items-center">
+    <div
+      className={`
+        p-6 rounded-xl border-2 shadow-sm transition-all hover:shadow-md bg-base-100 
+        ${priorityColors[email.importance]}
+      `}
+    >
+      <div className="flex justify-between items-start">
         <div>
-          <h3 className="font-semibold">{sender}</h3>
-          <p className="text-sm text-gray-400">{subject}</p>
+          {/* Sender */}
+          <h2 className="text-2xl font-extrabold text-white">{senderName}</h2>
+          {/* Sender Email */}
+          <p className="text-sm text-gray-400 mt-0.5">{senderEmail}</p>
+          {/* Subject */}
+          <h3 className="text-lg font-bold text-white mt-2">{email.subject}</h3>
+          {/* Summary */}
+          <p className="text-base text-gray-400 mt-3">{email.summary}</p>
         </div>
-        <span className="text-xs text-gray-400">{date}</span>
+
+        {/* Date + Priority */}
+        <div className="text-right ml-4">
+          <p className="text-lg font-semibold text-white">
+            {email.date ? email.date.split("T")[0] : ""}
+          </p>
+
+          <span
+            className={`inline-block mt-1 text-sm font-semibold px-3 py-1.5 rounded-full
+              ${
+                email.importance === "High"
+                  ? "bg-red-700 text-white"
+                  : email.importance === "Medium"
+                  ? "bg-green-700 text-white"
+                  : "bg-yellow-700 text-white"
+              }
+            `}
+          >
+            {email.importance || "Uncategorized"}
+          </span>
+        </div>
       </div>
-      <p className="mt-2 text-gray-300">{body}</p>
     </div>
   );
 }
