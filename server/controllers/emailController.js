@@ -1,38 +1,32 @@
 import { oauth2Client } from "../config/googleAuth.js";
 import User from "../models/User.js";
-import { listLatestEmails, getThreadBodies } from "../services/gmailService.js";
-import { summarizeThread } from "../services/aiService.js";
+import { listLatestEmailIds, getMessagesByIds } from "../services/gmailService.js";
+import { summarizeMessagesForUser } from "../services/summarizeService.js";
 
 export const summarizeEmails = async (req, res) => {
   try {
-    //console.log("🔹 summarizeEmails called. Body:", req.body);
-
-    // extract parameters
     const { emailCount, dateRange, sortBy } = req.body || {};
 
-    // emailCount = 0 → fetch many so filtering works
-    const count = Number(emailCount) > 0 ? Number(emailCount) : 100;
+    const GMAIL_WINDOW_RANGE = "1m";   // last 1 month
+    const GMAIL_WINDOW_COUNT = 50;     // up to 50 messages
 
-    // "all" → no date filter
-    const range = dateRange === "all" ? "" : dateRange;
-
-    // ensure logged in
+    // Require login
     if (!req.session.userId) {
       return res.status(401).json({ ok: false, error: "Not logged in" });
     }
 
-    // find user
+    // Load user
     const user = await User.findById(req.session.userId);
     if (!user) {
       return res.status(404).json({ ok: false, error: "User not found" });
     }
 
-    // verify tokens
+    // Make sure we have Google tokens
     if (!user.googleTokens?.refresh_token && !user.googleTokens?.access_token) {
       return res.status(400).json({ ok: false, error: "No Google tokens" });
     }
 
-    // refresh access token
+    // Refresh access token
     oauth2Client.setCredentials(user.googleTokens);
     const refreshed = await oauth2Client.getAccessToken();
     oauth2Client.setCredentials({
@@ -40,67 +34,98 @@ export const summarizeEmails = async (req, res) => {
       access_token: refreshed?.token,
     });
 
-    // fetch emails
-    const emails = await listLatestEmails(oauth2Client, count, range);
-    //console.log("📬 Fetched emails:", emails.length);
-
-    if (!emails || emails.length === 0) {
+    // fetch email ID's for recent window to detect new messages
+    const gmailMsgRefs = await listLatestEmailIds(
+      oauth2Client,
+      GMAIL_WINDOW_COUNT,
+      GMAIL_WINDOW_RANGE
+    );
+    // If no messages at all, return empty summaries
+    if (!gmailMsgRefs || gmailMsgRefs.length === 0) {
       return res.json({ ok: true, summaries: [] });
     }
 
-    // build summarization prompt
-    const prompt = `
-    You are an intelligent email summarizer.  
-    For each email below, do the following:
-    1. Write a concise 1–2 sentence summary.
-    2. Assign an importance level: High, Medium, Low.
+    // Existing cached summaries in MongoDB
+    const existingSummaries = user.summaries || [];
+    const existingById = new Map(existingSummaries.map((s) => [s.id, s]));
 
-    Return ONLY strict JSON:
-    [
-      {
-        "from": "",
-        "date": "",
-        "subject": "",
-        "summary": "",
-        "importance": ""
+    // Identify new IDs
+    const newIds = gmailMsgRefs.map((m) => m.id).filter((id) => !existingById.has(id));
+
+    //console.log(`📬 Gmail window refs: ${gmailMsgRefs.length}, new ids: ${newIds.length}`);
+
+    // Detect deleted messages and remove from cache
+    const now = Date.now();
+    const windowMs = GMAIL_WINDOW_RANGE === "1d" ? 1 * 24 * 60 * 60 * 1000 : GMAIL_WINDOW_RANGE === "1w" ? 7 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
+    const cutoffDate = new Date(now - windowMs);
+
+    const existingIdsSet = new Set(gmailMsgRefs.map((m) => m.id));
+    const toRemove = existingSummaries.filter((s) => {
+      try {
+        return new Date(s.date) >= cutoffDate && !existingIdsSet.has(s.id);
+      } catch (err) {
+        return false;
       }
-    ]
+    }).map((s) => s.id);
 
-    Emails:
-    ${emails
-      .map(
-        (m, i) => `
-    Email ${i + 1}:
-    From: ${m.from}
-    Date: ${m.date}
-    Subject: ${m.subject}
-    Snippet: ${m.snippet}
-    `
-      )
-      .join("\n")}
-    `;
-    
-    // save the raw ouput form Gemini  
-    let result = await summarizeThread(prompt);
-
-    // Parse Gemini output (get rid of extra ''' stuff)
-    let summaries = [];
-    try {
-      const cleaned = result
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
-
-      summaries = JSON.parse(cleaned);
-    } catch (err) {
-      console.error("❌ Failed to parse Gemini response:", err);
-      summaries = [{ summary: result, importance: "Unknown" }];
+    if (toRemove.length > 0) {
+      console.log(`🗑️ Removing ${toRemove.length} deleted summaries from DB for user ${user._id}`);
+      const remaining = existingSummaries.filter((s) => !toRemove.includes(s.id));
+      user.summaries = remaining;
+      await user.save();
+      // update existingById to reflect removals
+      existingById.clear();
+      (user.summaries || []).forEach((s) => existingById.set(s.id, s));
     }
 
-    //console.log("✅ Parsed summaries:", summaries);
+    // If no new messages, return cached summaries immediately (fast path)
+    if (newIds.length === 0) {
+      const allSummaries = (user.summaries || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+      return res.json({ ok: true, summaries: allSummaries });
+    }
 
-    return res.json({ ok: true, summaries });
+    // Otherwise fetch full details only for the new IDs
+    const newEmails = await getMessagesByIds(oauth2Client, newIds);
 
+    let newSummaries = [];
+
+    // Only call Gemini for new emails using the shared summarize service
+    if (newEmails.length > 0) {
+      let parsed;
+      try {
+        parsed = await summarizeMessagesForUser(newEmails, user._id.toString());
+      } catch (err) {
+        console.error("❌ Failed to summarize new emails:", err);
+        return res.status(500).json({ ok: false, error: "Failed to summarize new emails" });
+      }
+
+      // Map summaries back to email IDs and ensure dates are Date objects
+      newSummaries = parsed.map((p, idx) => {
+        const base = newEmails[idx];
+        return {
+          id: base.id,
+          from: p.from || base.from,
+          subject: p.subject || base.subject,
+          date: p.date ? new Date(p.date) : new Date(base.date),
+          summary: p.summary || "",
+          importance: p.importance || "Medium",
+        };
+      });
+
+      // Merge new summaries into user's cached summaries and save
+      const mergedById = new Map(existingSummaries.map((s) => [s.id, s]));
+      newSummaries.forEach((s) => mergedById.set(s.id, s));
+
+      user.summaries = Array.from(mergedById.values());
+      await user.save();
+    }
+
+    // return all summaries 
+    const allSummaries = (user.summaries || []).slice().sort(
+      (a, b) => new Date(b.date) - new Date(a.date)
+    );
+
+    return res.json({ ok: true, summaries: allSummaries });
   } catch (err) {
     console.error("❌ Email summary error:", err);
     return res.status(500).json({ ok: false, error: err.message });

@@ -1,4 +1,7 @@
-export default function AuthBar({ me, onLogin, onLogout, onSummarize, loading }) {
+export default function AuthBar({ me, onLogin, onLogout, onSummarize, loading, prefetching }) {
+  const disabled = loading || prefetching;
+  const label = prefetching ? "Preparing summaries..." : loading ? "Summarizing..." : "Summarize Emails";
+
   return (
     <div className="flex justify-between items-center mb-6">
       <div className="text-white text-lg italic font-bold mr-auto">
@@ -9,10 +12,10 @@ export default function AuthBar({ me, onLogin, onLogout, onSummarize, loading })
           <>
             <button
               onClick={onSummarize}
-              disabled={loading}
-              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+              disabled={disabled}
+              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
             >
-              {loading ? "Summarizing..." : "Summarize Emails"}
+              {label}
             </button>
             <button
               onClick={onLogout}

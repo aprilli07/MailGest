@@ -11,7 +11,17 @@ const GoogleTokensSchema = new mongoose.Schema({
 // User schema to store email and Google OAuth tokens on MongoDB
 const UserSchema = new mongoose.Schema({
     email: { type: String, index: true, unique: true },  // unique: no users have the same email
-    googleTokens: GoogleTokensSchema
+    googleTokens: GoogleTokensSchema,
+    summaries: [
+        {
+            id: String,
+            from: String,
+            subject: String,
+            summary: String,
+            importance: String,
+            date: Date
+        }
+    ],
 }, { timestamps: true });
 
 export default mongoose.model("User", UserSchema);

@@ -32,6 +32,7 @@ export default function FilterBar({ filters, setFilters }) {
         onChange={(e) => setFilters((prev) => ({ ...prev, sortBy: e.target.value }))}
         className="bg-gray-800 p-2 rounded"
       >
+        <option value=""> Select Sort </option>
         <option value="date">Sort by Date</option>
         <option value="importance">Sort by Importance</option>
       </select>
