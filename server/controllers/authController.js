@@ -103,8 +103,9 @@ export const googleCallback = async (req, res) => {
         console.error("Prefetch job failed:", err);
       }
     })();
-    // Redirect back to frontend after successful login. 
-    const frontend = process.env.FRONTEND_URL || "http://localhost:5173";
+    // Redirect back to frontend after successful login.
+    // Prefer explicit FRONTEND_URL, fall back to CLIENT_ORIGIN, then localhost.
+    const frontend = process.env.FRONTEND_URL || process.env.CLIENT_ORIGIN || "http://localhost:5173";
     res.redirect(frontend);
   } catch (err) {
     console.error("OAuth error:", err);

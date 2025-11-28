@@ -24,6 +24,7 @@ This guide covers deploying the backend to Render, the frontend to Vercel, and s
    - `PORT=8080`
    - `NODE_ENV=production`
    - `CLIENT_ORIGIN=https://your-frontend.vercel.app`
+   - `FRONTEND_URL=https://your-frontend.vercel.app` (used for OAuth redirect after login)
    - `MONGODB_URI=...`
    - `GOOGLE_CLIENT_ID=...`
    - `GOOGLE_CLIENT_SECRET=...`
