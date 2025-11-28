@@ -43,6 +43,11 @@ export const googleCallback = async (req, res) => {
     console.log("googleCallback: set session.userId", req.session.userId);
 
     // Issue a JWT for production to avoid third-party cookie issues
+    if (!process.env.JWT_SECRET) {
+      console.error("googleCallback: JWT_SECRET missing in environment");
+      return res.status(500).send("Server configuration error: JWT_SECRET not set");
+    }
+    console.log("googleCallback: JWT_SECRET present?", !!process.env.JWT_SECRET);
     const token = jwt.sign(
       { userId: user._id.toString() },
       process.env.JWT_SECRET,
