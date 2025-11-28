@@ -31,7 +31,7 @@ export default function Dashboard() {
 
   // axios instance to talk to backend
   const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE,
+    baseURL: import.meta.env.VITE_API_URL,
     withCredentials: true,
   });
 
@@ -180,7 +180,7 @@ useEffect(() => {
 
   // redirect user to google OAuth login page
   const login = () => {
-    window.location.href = `${import.meta.env.VITE_API_BASE}/auth/google`;
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
   };
 
   // log out user
