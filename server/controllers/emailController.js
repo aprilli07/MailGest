@@ -10,13 +10,14 @@ export const summarizeEmails = async (req, res) => {
     const GMAIL_WINDOW_RANGE = "1m";   // last 1 month
     const GMAIL_WINDOW_COUNT = 50;     // up to 50 messages
 
-    // Require login
-    if (!req.session.userId) {
+    // Require login (support JWT via requireUser and cookie-session as fallback)
+    const userId = (req.user && req.user._id?.toString()) || req.session.userId;
+    if (!userId) {
       return res.status(401).json({ ok: false, error: "Not logged in" });
     }
 
     // Load user
-    const user = await User.findById(req.session.userId);
+    const user = req.user || (await User.findById(userId));
     if (!user) {
       return res.status(404).json({ ok: false, error: "User not found" });
     }
