@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import { oauth2Client, SCOPES } from "../config/googleAuth.js";
 import { listLatestEmailIds, getMessagesByIds } from "../services/gmailService.js";
 import { summarizeMessagesForUser } from "../services/summarizeService.js";
+import jwt from "jsonwebtoken";
 
 export const googleAuth = (req, res) => {
     // generate the URL for the grant access page 
@@ -37,9 +38,16 @@ export const googleCallback = async (req, res) => {
       { upsert: true, new: true } // upsert creates if not exists, new returns the updated doc
     );
 
-    // Store user ID in session (keeps you signed in)
+    // Store user ID in session (keeps you signed in) — for local dev
     req.session.userId = user._id.toString();
     console.log("googleCallback: set session.userId", req.session.userId);
+
+    // Issue a JWT for production to avoid third-party cookie issues
+    const token = jwt.sign(
+      { userId: user._id.toString() },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
     const userId = user._id.toString();
     const savedTokens = oauth2Client.credentials;
@@ -108,7 +116,9 @@ export const googleCallback = async (req, res) => {
     // Prefer explicit FRONTEND_URL, fall back to CLIENT_ORIGIN, then localhost.
     const frontend = process.env.FRONTEND_URL || process.env.CLIENT_ORIGIN || "http://localhost:5173";
     console.log("googleCallback: redirecting to frontend", frontend);
-    res.redirect(frontend);
+    // Redirect with token as URL fragment (not sent to server logs)
+    const redirectUrl = `${frontend}#token=${token}`;
+    res.redirect(redirectUrl);
   } catch (err) {
     console.error("OAuth error:", err);
     res.status(500).send("OAuth failed");

@@ -1,8 +1,26 @@
 import User from "../models/User.js";
+import jwt from "jsonwebtoken";
 
 export const requireUser = async (req, res, next) => {
   try {
-    // Ensure the user is logged in
+    // Allow JWT via Authorization header as alternative to cookie-session
+    const auth = req.headers.authorization;
+    if (auth && auth.startsWith("Bearer ")) {
+      try {
+        const token = auth.slice(7);
+        const payload = jwt.verify(token, process.env.JWT_SECRET);
+        if (payload?.userId) {
+          const user = await User.findById(payload.userId);
+          if (user) {
+            req.user = user;
+            return next();
+          }
+        }
+      } catch (e) {
+        // fall back to cookie session
+      }
+    }
+    // Ensure the user is logged in (cookie-session fallback)
     if (!req.session.userId) {
       console.warn("requireUser: missing session.userId", {
         cookies: req.headers.cookie,

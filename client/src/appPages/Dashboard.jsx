@@ -10,6 +10,35 @@ import toast from "react-hot-toast";
 import { useRef } from "react";
 
 export default function Dashboard() {
+  // Pull API base from Vite env
+  const apiBase = import.meta.env.VITE_API_URL;
+
+  // Capture JWT token from URL hash on OAuth redirect and set axios Authorization
+  function initializeAuthToken() {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash || "";
+    const match = hash.match(/token=([^&]+)/);
+    if (match && match[1]) {
+      const token = decodeURIComponent(match[1]);
+      try {
+        localStorage.setItem("authToken", token);
+      } catch {}
+      const cleanUrl = window.location.origin + window.location.pathname + window.location.search;
+      window.history.replaceState(null, "", cleanUrl);
+    }
+    const saved = (() => {
+      try {
+        return localStorage.getItem("authToken");
+      } catch {
+        return null;
+      }
+    })();
+    if (saved) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${saved}`;
+    }
+  }
+
+  initializeAuthToken();
   // store logged in user's email 
   const [me, setMe] = useState(null);
   // store raw fetched email summaries from backend
@@ -31,9 +60,15 @@ export default function Dashboard() {
 
   // axios instance to talk to backend
   const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL,
+    baseURL: apiBase,
     withCredentials: true,
   });
+
+  // Ensure the Authorization header is applied to this axios instance
+  try {
+    const t = localStorage.getItem("authToken");
+    if (t) api.defaults.headers.common["Authorization"] = `Bearer ${t}`;
+  } catch {}
 
   // fetch logged in user info
   const fetchMe = async () => {
@@ -180,7 +215,7 @@ useEffect(() => {
 
   // redirect user to google OAuth login page
   const login = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
+    window.location.href = `${apiBase}/auth/google`;
   };
 
   // log out user
