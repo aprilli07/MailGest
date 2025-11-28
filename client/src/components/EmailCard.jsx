@@ -23,10 +23,14 @@ export default function EmailCard({ email }) {
           <h2 className="text-2xl font-extrabold text-white">{senderName}</h2>
           {/* Sender Email */}
           <p className="text-sm text-gray-400 mt-0.5">{senderEmail}</p>
-          {/* Subject */}
-          <h3 className="text-lg font-bold text-white mt-2">{email.subject}</h3>
-          {/* Summary */}
-          <p className="text-base text-gray-400 mt-3">{email.summary}</p>
+          {/* Subject (single line, no wrap) */}
+          <h3 className="text-lg font-bold text-white mt-2 whitespace-nowrap overflow-hidden text-ellipsis">
+            {email.subject}
+          </h3>
+          {/* Summary (single line, no wrap) */}
+          <p className="text-base text-gray-400 mt-3 whitespace-nowrap overflow-hidden text-ellipsis">
+            {email.summary}
+          </p>
         </div>
 
         {/* Date + Priority */}

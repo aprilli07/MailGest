@@ -1,1 +1,21 @@
 @import "tailwindcss";
+
+/* Ensure full-page black background and remove white overscroll areas */
+html, body, #root {
+	height: 100%;
+}
+
+html, body {
+	background-color: #000;
+	color: #fff;
+}
+
+/* Prevent rubber-band overscroll showing white background */
+html {
+	overscroll-behavior: none;
+}
+
+/* Avoid horizontal scroll ghosting */
+body {
+	overflow-x: hidden;
+}
