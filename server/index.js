@@ -12,17 +12,39 @@ dotenv.config(); // load .env file
 //console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
 const app = express(); 
 
+// Ensure secure cookies are set behind proxies (Render/Heroku/Vercel)
+app.set("trust proxy", 1);
+
 // CORS: allow local dev and deployed frontend
 const allowedOrigins = [
   "http://localhost:5173",
   process.env.CLIENT_ORIGIN
 ].filter(Boolean);
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // non-browser / same-origin
+  if (allowedOrigins.includes(origin)) return true;
+  // Allow any Vercel preview or production subdomain
+  try {
+    const url = new URL(origin);
+    const host = url.host;
+    if (host.endsWith(".vercel.app")) return true;
+  } catch {}
+  return false;
+};
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow non-browser requests or same-origin
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (isAllowedOrigin(origin)) return callback(null, true);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true
+}));
+
+// Handle preflight for all routes
+app.options("*", cors({
+  origin: (origin, callback) => {
+    if (isAllowedOrigin(origin)) return callback(null, true);
     return callback(new Error("Not allowed by CORS"));
   },
   credentials: true

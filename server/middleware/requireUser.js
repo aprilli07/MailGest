@@ -4,6 +4,11 @@ export const requireUser = async (req, res, next) => {
   try {
     // Ensure the user is logged in
     if (!req.session.userId) {
+      console.warn("requireUser: missing session.userId", {
+        cookies: req.headers.cookie,
+        session: req.session,
+        origin: req.headers.origin,
+      });
       return res.status(401).json({ ok: false, error: "Not logged in" });
     }
 
