@@ -65,6 +65,16 @@ app.use("/auth", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", emailRoutes);
 
+// DEBUG ONLY: inspect cookies and session (remove when fixed)
+app.get("/api/debug", (req, res) => {
+  res.json({
+    cookieHeader: req.headers.cookie || null,
+    session: req.session || null,
+    hasUserId: !!(req.session && req.session.userId),
+    origin: req.headers.origin || null
+  });
+});
+
 // health check for Render
 app.get("/health", (req, res) => {
   res.status(200).send("ok");

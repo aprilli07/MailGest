@@ -39,6 +39,7 @@ export const googleCallback = async (req, res) => {
 
     // Store user ID in session (keeps you signed in)
     req.session.userId = user._id.toString();
+    console.log("googleCallback: set session.userId", req.session.userId);
 
     const userId = user._id.toString();
     const savedTokens = oauth2Client.credentials;
@@ -106,6 +107,7 @@ export const googleCallback = async (req, res) => {
     // Redirect back to frontend after successful login.
     // Prefer explicit FRONTEND_URL, fall back to CLIENT_ORIGIN, then localhost.
     const frontend = process.env.FRONTEND_URL || process.env.CLIENT_ORIGIN || "http://localhost:5173";
+    console.log("googleCallback: redirecting to frontend", frontend);
     res.redirect(frontend);
   } catch (err) {
     console.error("OAuth error:", err);
