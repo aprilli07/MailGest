@@ -39,16 +39,18 @@ export const googleCallback = async (req, res) => {
 
     // Store user ID in session (keeps you signed in)
     req.session.userId = user._id.toString();
-    // Redirect back to frontend after successful login 
-    res.redirect("http://localhost:5173");
+
+    const userId = user._id.toString();
+    const savedTokens = oauth2Client.credentials;
+    const savedTokensUserId = userId;
 
     // Fetch summaries in background automatically on login
     (async () => {
       try {
-        const userId = req.session.userId;
+        const userId = savedTokensUserId;
         console.log(`Prefetch: starting for user ${userId}`);
         // ensure oauth2 client has the saved credentials
-        oauth2Client.setCredentials(user.googleTokens || oauth2Client.credentials || {});
+        oauth2Client.setCredentials(savedTokens);
 
         // check DB: only prefetch if user has no summaries yet
         const freshUser = await User.findById(userId).lean();
@@ -101,6 +103,9 @@ export const googleCallback = async (req, res) => {
         console.error("Prefetch job failed:", err);
       }
     })();
+    // Redirect back to frontend after successful login. 
+    const frontend = process.env.FRONTEND_URL || "http://localhost:5173";
+    res.redirect(frontend);
   } catch (err) {
     console.error("OAuth error:", err);
     res.status(500).send("OAuth failed");

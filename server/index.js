@@ -12,10 +12,20 @@ dotenv.config(); // load .env file
 //console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
 const app = express(); 
 
-// enables CORS so react dev server can talk to this API
+// CORS: allow local dev and deployed frontend
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.CLIENT_ORIGIN
+].filter(Boolean);
+
 app.use(cors({
-    origin: "http://localhost:5173",
-    credentials: true
+  origin: (origin, callback) => {
+    // Allow non-browser requests or same-origin
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true
 }));
 app.use(express.json());
 
@@ -24,10 +34,10 @@ app.use(
   cookieSession({
     name: "session",
     secret: process.env.SESSION_SECRET,
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
-    sameSite: "lax",             // helps with cookies across localhost:4000 ↔ 5173
-    secure: false,               // true only if using HTTPS
-    httpOnly: true               // prevents client-side JS access
+    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true
   })
 );
 
@@ -38,7 +48,13 @@ app.use("/auth", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", emailRoutes);
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on http://localhost:${process.env.PORT}`);
+// health check for Render
+app.get("/health", (req, res) => {
+  res.status(200).send("ok");
+});
+
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
 
