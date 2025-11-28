@@ -42,13 +42,7 @@ app.use(cors({
 }));
 
 // Handle preflight for all routes
-app.options("*", cors({
-  origin: (origin, callback) => {
-    if (isAllowedOrigin(origin)) return callback(null, true);
-    return callback(new Error("Not allowed by CORS"));
-  },
-  credentials: true
-}));
+// Preflight is handled by the cors middleware above; no explicit wildcard route
 app.use(express.json());
 
 // cookie session middleware (stores user id after OAuth safely)
