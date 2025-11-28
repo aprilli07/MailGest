@@ -1,11 +1,6 @@
 {
   "version": 2,
   "builds": [{ "src": "package.json", "use": "@vercel/static-build" }],
-  "routes": [
-    { "src": "/(.*)", "dest": "/index.html" }
-  ],
-  "env": {
-    "VITE_API_URL": "https://mailgest.onrender.com",
-    "VITE_GOOGLE_CLIENT_ID": "1071434890983-1qcjsqqum7gcc26s093dsgk27s633r8n.apps.googleusercontent.com"
-  }
+  "outputDirectory": "dist",
+  "framework": "vite"
 }
