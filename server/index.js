@@ -21,6 +21,7 @@ const allowedOrigins = [
   process.env.CLIENT_ORIGIN
 ].filter(Boolean);
 
+// helper to check if origin is allowed
 const isAllowedOrigin = (origin) => {
   if (!origin) return true; // non-browser / same-origin
   if (allowedOrigins.includes(origin)) return true;
@@ -33,6 +34,8 @@ const isAllowedOrigin = (origin) => {
   return false;
 };
 
+// Determines if origin is allowed and sets CORS accordingly
+// Determines if backend should allow incoming requests from frontend
 app.use(cors({
   origin: (origin, callback) => {
     if (isAllowedOrigin(origin)) return callback(null, true);
@@ -41,8 +44,6 @@ app.use(cors({
   credentials: true
 }));
 
-// Handle preflight for all routes
-// Preflight is handled by the cors middleware above; no explicit wildcard route
 app.use(express.json());
 
 // cookie session middleware (stores user id after OAuth safely)
@@ -64,16 +65,6 @@ connectDB();
 app.use("/auth", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", emailRoutes);
-
-// DEBUG ONLY: inspect cookies and session (remove when fixed)
-app.get("/api/debug", (req, res) => {
-  res.json({
-    cookieHeader: req.headers.cookie || null,
-    session: req.session || null,
-    hasUserId: !!(req.session && req.session.userId),
-    origin: req.headers.origin || null
-  });
-});
 
 // health check for Render
 app.get("/health", (req, res) => {

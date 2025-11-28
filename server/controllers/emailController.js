@@ -10,7 +10,7 @@ export const summarizeEmails = async (req, res) => {
     const GMAIL_WINDOW_RANGE = "1m";   // last 1 month
     const GMAIL_WINDOW_COUNT = 50;     // up to 50 messages
 
-    // Require login (support JWT via requireUser and cookie-session as fallback)
+    // Require login 
     const userId = (req.user && req.user._id?.toString()) || req.session.userId;
     if (!userId) {
       return res.status(401).json({ ok: false, error: "Not logged in" });

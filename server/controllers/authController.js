@@ -40,14 +40,14 @@ export const googleCallback = async (req, res) => {
 
     // Store user ID in session (keeps you signed in) — for local dev
     req.session.userId = user._id.toString();
-    console.log("googleCallback: set session.userId", req.session.userId);
 
-    // Issue a JWT for production to avoid third-party cookie issues
+    // Check if JWT_SECRET is set
     if (!process.env.JWT_SECRET) {
       console.error("googleCallback: JWT_SECRET missing in environment");
       return res.status(500).send("Server configuration error: JWT_SECRET not set");
     }
-    console.log("googleCallback: JWT_SECRET present?", !!process.env.JWT_SECRET);
+
+    // Create JWT token for user that lasts 1 day (the user must sign in again)
     const token = jwt.sign(
       { userId: user._id.toString() },
       process.env.JWT_SECRET,
@@ -120,7 +120,6 @@ export const googleCallback = async (req, res) => {
     // Redirect back to frontend after successful login.
     // Prefer explicit FRONTEND_URL, fall back to CLIENT_ORIGIN, then localhost.
     const frontend = process.env.FRONTEND_URL || process.env.CLIENT_ORIGIN || "http://localhost:5173";
-    console.log("googleCallback: redirecting to frontend", frontend);
     // Redirect with token as URL fragment (not sent to server logs)
     const redirectUrl = `${frontend}#token=${token}`;
     res.redirect(redirectUrl);

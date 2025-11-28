@@ -1,6 +1,10 @@
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 
+// Vercel and Render have two different domains and browsers DO NOT send
+// // cookies across different domains -> use JWT to authenticate instead
+
+// authentication middleware to require a logged-in user
 export const requireUser = async (req, res, next) => {
   try {
     // Allow JWT via Authorization header as alternative to cookie-session
@@ -17,7 +21,6 @@ export const requireUser = async (req, res, next) => {
           }
         }
       } catch (e) {
-        // fall back to cookie session
       }
     }
     // Ensure the user is logged in (cookie-session fallback)

@@ -61,7 +61,6 @@ export default function Dashboard() {
   // axios instance to talk to backend
   const api = axios.create({
     baseURL: apiBase,
-    withCredentials: true,
   });
 
   // Ensure the Authorization header is applied to this axios instance
@@ -85,84 +84,84 @@ export default function Dashboard() {
   const loginToastShown = useRef(false);
   const prefetchToastId = useRef(null);
 
-useEffect(() => {
-  // don't show Toast popup if still loading user info
-  if (loadingUser) return;            
-  
-  if (!me) {
-    // If user logs out -> show sign-in toast once.
-    if (!loginToastShown.current) {
-      toast("✉️ Sign in to summarize your emails", {
-        duration: 6000,
-      });
-      // logged in -> don't show again until logout
-      loginToastShown.current = true;
+  useEffect(() => {
+    // don't show Toast popup if still loading user info
+    if (loadingUser) return;            
+    
+    if (!me) {
+      // If user logs out -> show sign-in toast once.
+      if (!loginToastShown.current) {
+        toast("✉️ Sign in to summarize your emails", {
+          duration: 6000,
+        });
+        // logged in -> don't show again until logout
+        loginToastShown.current = true;
+      }
+    } else {
+      // If user logs in -> do nothing
+      // Only reset on logout.
     }
-  } else {
-    // If user logs in -> do nothing
-    // Only reset on logout.
-  }
-}, [me, loadingUser]);
+  }, [me, loadingUser]);
 
-// Handle new-user prefetch state
-useEffect(() => {
-  if (!me) {
-    // user logged out -> reset everything
-    toast.dismiss(prefetchToastId.current);
-    prefetchToastId.current = null;
-    setPrefetching(false);
-    return;
-  }
+  // Handle new-user prefetch state
+  useEffect(() => {
+    if (!me) {
+      // user logged out -> reset everything
+      toast.dismiss(prefetchToastId.current);
+      prefetchToastId.current = null;
+      setPrefetching(false);
+      return;
+    }
 
-  // user has summaries already -> no need to wait
-  if (me.cacheReady) {
-    toast.dismiss(prefetchToastId.current);
-    prefetchToastId.current = null;
-    setPrefetching(false);
-    return;
-  }
+    // user has summaries already -> no need to wait
+    if (me.cacheReady) {
+      toast.dismiss(prefetchToastId.current);
+      prefetchToastId.current = null;
+      setPrefetching(false);
+      return;
+    }
 
-  // user logged in but backend still prefetching -> block summarize & show toast
-  setPrefetching(true);
+    // user logged in but backend still prefetching -> block summarize & show toast
+    setPrefetching(true);
 
-  // show toast only once
-  if (!prefetchToastId.current) {
-    prefetchToastId.current = toast.loading(
-      "Preparing summaries... This may take a moment."
-    );
-  }
+    // show toast only once
+    if (!prefetchToastId.current) {
+      prefetchToastId.current = toast.loading(
+        "Preparing summaries... This may take a moment."
+      );
+    }
 
-  // begin short polling
-  let tries = 0;
-  const interval = setInterval(async () => {
-    tries++;
+    // begin short polling
+    let tries = 0;
+    const interval = setInterval(async () => {
+      tries++;
 
-    try {
-      const { data } = await api.get("/api/me");
-      if (data.ok) setMe(data.user);
+      try {
+        const { data } = await api.get("/api/me");
+        if (data.ok) setMe(data.user);
 
-      // backend finished -> stop
-      if (data?.user?.cacheReady) {
+        // backend finished -> stop
+        if (data?.user?.cacheReady) {
+          toast.dismiss(prefetchToastId.current);
+          toast.success("Summaries are ready!");
+          prefetchToastId.current = null;
+          setPrefetching(false);
+          clearInterval(interval);
+        }
+      } catch {}
+
+      // timeout after 10 tries
+      if (tries >= 10) {
         toast.dismiss(prefetchToastId.current);
-        toast.success("Summaries are ready!");
+        toast("Prefetch is slow—you can summarize manually now.");
         prefetchToastId.current = null;
         setPrefetching(false);
         clearInterval(interval);
       }
-    } catch {}
+    }, 1000);
 
-    // timeout after 10 tries
-    if (tries >= 10) {
-      toast.dismiss(prefetchToastId.current);
-      toast("Prefetch is slow—you can summarize manually now.");
-      prefetchToastId.current = null;
-      setPrefetching(false);
-      clearInterval(interval);
-    }
-  }, 1000);
-
-  return () => clearInterval(interval);
-}, [me]);
+    return () => clearInterval(interval);
+  }, [me]);
 
   // fetch email summaries from backend
   const fetchSummary = async () => {
