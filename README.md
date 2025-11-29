@@ -13,4 +13,4 @@ MailGest is a web app that connects to your Gmail account, fetches recent messag
 - **Frontend:** React + Vite + Tailwind CSS
 - **Backend:** Node.js + Express
 - **Database:** MongoDB (Mongoose)
-- **OAuth:** `googleapis` (OAuth2 Client)
+- **OAuth:** GoogleAPIs (OAuth2 Client)
