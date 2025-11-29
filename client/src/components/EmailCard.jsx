@@ -17,8 +17,8 @@ export default function EmailCard({ email }) {
         ${priorityColors[email.importance]}
       `}
     >
-      <div className="flex justify-between items-start">
-        <div>
+      <div className="flex items-start gap-4">
+        <div className="flex-1 min-w-0">
           {/* Sender */}
           <h2 className="text-2xl font-extrabold text-white">{senderName}</h2>
           {/* Sender Email */}
@@ -34,7 +34,7 @@ export default function EmailCard({ email }) {
         </div>
 
         {/* Date + Priority */}
-        <div className="text-right ml-4">
+        <div className="ml-auto shrink-0 flex flex-col items-end text-right">
           <p className="text-lg font-semibold text-white">
             {email.date ? email.date.split("T")[0] : ""}
           </p>
@@ -48,7 +48,7 @@ export default function EmailCard({ email }) {
                   ? "bg-green-700 text-white"
                   : "bg-yellow-700 text-white"
               }
-            `}
+            self-end`}
           >
             {email.importance || "Uncategorized"}
           </span>
